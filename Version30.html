@@ -144,7 +144,7 @@ iframe{width:100%;height:780px;border:none;display:block}
 <header class="hdr">
   <div class="hdr-mark">H</div>
   <div class="hdr-name">Hyly Template Injector</div>
-  <div class="hdr-pill">Preview &amp; Compare · v5.30</div>
+  <div class="hdr-pill">Preview &amp; Compare · v5.31</div>
 </header>
 
 <div class="wrap">
@@ -387,6 +387,81 @@ function applyEmailMeta(result,row,changes){
       if(isActive(pre)&&!isRemove(pre)){obj.preheader=pre.trim();log('Preheader',obj.preheader);}
       nl.text3=hylyEscapeText3(JSON.stringify(obj));
     }
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GLOBAL UTM PROPAGATION (v5.31)
+// ───────────────────────────────────────────────────────────────
+// Reads the CSV-injected CTA-Button-1 href, extracts its utm_* params,
+// and propagates that exact UTM set to every other non-system href across
+// all NltCustomHylets. Single source of truth = the CSV CTA. One email =
+// one campaign. CTA-1 is canonical; CTA-2 / cloned CTAs are ignored for
+// UTM extraction (per spec — they may exist but CTA-1 wins).
+//
+// SKIPPED hrefs (left untouched, Hyly fills these in at send time):
+//   - tel:, mailto:, # (anchors)
+//   - Pure macros: anything that is ONLY {%...%} with optional whitespace
+//     (e.g. {%email_url%}, {%unsubscribe_url%}, {%suborg.amenities_link.url%})
+// REWRITTEN hrefs:
+//   - Any http(s):// URL (with or without existing query string)
+//   - Macro-base URLs WITH query strings, e.g. {%suborg.property_url%}?utm_...
+//     (base preserved; the ? makes intent unambiguous — Latitude pattern)
+// REWRITE RULES:
+//   - Existing utm_* params are stripped, replaced with CTA-1's full utm set
+//   - Non-utm query params (e.g. hyly_method=e, hyly_channel=pr) are preserved
+//   - utm params come FIRST in the new query string for readability
+//   - Separator is '&' (matches what Hyly templates use inside text1 — verified
+//     across Ophelia/Admiral/Ona/Latitude templates; '&amp;' is not used)
+// NO-OP CASES:
+//   - CTA-1 href is empty / None / Remove / contains no '?' → no UTMs to read
+//   - In all no-op cases this function returns the JSON untouched
+// ═══════════════════════════════════════════════════════════════
+function _extractUtmString(href){
+  if(!href||typeof href!=='string')return'';
+  const qIdx=href.indexOf('?');
+  if(qIdx===-1)return'';
+  const params=href.slice(qIdx+1).split('&').filter(p=>/^utm_/i.test(p));
+  return params.join('&');
+}
+function _isSystemHref(href){
+  if(!href||typeof href!=='string')return true;
+  const t=href.trim();
+  if(!t)return true;
+  if(/^(tel:|mailto:|#)/i.test(t))return true;
+  // Pure macro token (no query string, no path beyond the macro itself)
+  if(/^\{%[^%]*%\}$/.test(t))return true;
+  return false;
+}
+function _rewriteHrefUtm(href,utmString){
+  if(!utmString||_isSystemHref(href))return href;
+  const qIdx=href.indexOf('?');
+  if(qIdx===-1){
+    // Bare URL — append UTMs as the only query string
+    return href+'?'+utmString;
+  }
+  const base=href.slice(0,qIdx);
+  const query=href.slice(qIdx+1);
+  // Strip existing utm_* params, keep everything else (hyly_method, etc.)
+  const kept=query.split('&').filter(p=>p&&!/^utm_/i.test(p));
+  const combined=[utmString,...kept].filter(Boolean).join('&');
+  return base+'?'+combined;
+}
+function applyGlobalUtms(result,row){
+  if(!result||!result.hylets||!Array.isArray(result.hylets))return result;
+  // CTA-1 href from the CSV row is the canonical source of UTM truth.
+  const ctaHref=row?row['CTA-Button-1(href)']:null;
+  if(!ctaHref||!isActive(ctaHref)||isRemove(ctaHref))return result;
+  const utmString=_extractUtmString(ctaHref);
+  if(!utmString)return result; // CTA has no UTMs → nothing to propagate
+  for(const h of result.hylets){
+    if(!h||h.type!=='Mktg::NltCustomHylet')continue;
+    if(typeof h.text1!=='string'||!h.text1)continue;
+    h.text1=h.text1.replace(/href="([^"]*)"/g,(full,href)=>{
+      const next=_rewriteHrefUtm(href,utmString);
+      return next===href?full:`href="${next}"`;
+    });
   }
   return result;
 }
@@ -4051,6 +4126,7 @@ function switchVariant(){
     const sbsInstructions=sbsBuildInstructions(tplParsed,row,hmap,hmapExt);
     const{json:sbsExecutedJSON,changes:sbsChanges}=sbsExecuteInstructions(tplData,sbsInstructions);
     applyEmailMeta(sbsExecutedJSON,row);
+    applyGlobalUtms(sbsExecutedJSON,row);
 
     // Rule badge (reuses expanded engine's labels)
     document.getElementById('ruleBadge').innerHTML=`<div class="rule-badge ${RULE_CLS[sbsInstructions.ruleNum]}">● ${RULE_LABELS[sbsInstructions.ruleNum]} · side-by-side</div>`;
@@ -4071,6 +4147,7 @@ function switchVariant(){
   const instructions=buildInstructions(tplParsed,row,hmap);
   const{json:executedJSON,changes}=executeInstructions(tplData,instructions);
   applyEmailMeta(executedJSON,row,changes);
+  applyGlobalUtms(executedJSON,row);
 
   // Rule badge
   document.getElementById('ruleBadge').innerHTML=`<div class="rule-badge ${RULE_CLS[instructions.ruleNum]}">● ${RULE_LABELS[instructions.ruleNum]}</div>`;
@@ -4147,6 +4224,7 @@ async function downloadAll(){
         result=executeInstructions(tplData,instructions).json;
       }
       applyEmailMeta(result,row);
+      applyGlobalUtms(result,row);
       zip.file(`${name}.json`,JSON.stringify(result,null,2));
     }catch(e){console.error(name,e);}
     await new Promise(r=>setTimeout(r,0));
