@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hyly — Preview & Compare</title>
+<title>Template Content Injector — Hyly</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -15,6 +15,7 @@
   --amber:#8A5A08;--amber-bg:#FEF7EC;--amber-bd:#F0C870;
   --blue:#1250A0;--blue-bg:#EDF2FC;--blue-bd:#B0C8F0;
   --purple:#5B21B6;--purple-bg:#F3F0FF;--purple-bd:#C4B5FD;
+  --brand:#0D1F4E;--brand-strong:#13286B;--teal:#00A99D;--teal-strong:#00897F;
   --r:8px;--rl:12px;
   --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --mono:'Courier New',monospace;
@@ -23,7 +24,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 
 /* Header */
 .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
-.hdr-mark{width:26px;height:26px;background:var(--text);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
+.hdr-mark{width:26px;height:26px;background:linear-gradient(135deg,var(--brand),var(--teal));border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px}
 .hdr-name{font-weight:600;font-size:14px}
 .hdr-pill{margin-left:auto;font-size:11px;color:var(--text3);background:var(--bg);padding:3px 10px;border-radius:20px;border:1px solid var(--border);font-family:var(--mono)}
 
@@ -36,7 +37,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .uc-title{font-size:14px;font-weight:600;margin-bottom:3px}
 .uc-sub{font-size:12px;color:var(--text2);margin-bottom:12px}
 .dz{border:1.5px dashed var(--border2);border-radius:var(--r);padding:18px 14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--bg)}
-.dz:hover,.dz.over{border-color:var(--text);background:#EEEDE9}
+.dz:hover,.dz.over{border-color:var(--brand);background:#EEEDE9}
 .dz.ok{border-style:solid;border-color:var(--green);background:var(--green-bg)}
 .dz-icon{font-size:18px;color:var(--text3);margin-bottom:6px;display:block}
 .dz.ok .dz-icon,.dz.ok .dz-label{color:var(--green)}
@@ -44,15 +45,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .dz-hint{font-size:11px;color:var(--text3)}
 
 /* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:var(--r);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:var(--sans)}
-.btn-full{width:100%;padding:12px;font-size:14px}
-.btn-dark{background:var(--text);color:#fff}
-.btn-dark:hover:not(:disabled){background:#2A291F;box-shadow:0 4px 14px rgba(0,0,0,.15)}
-.btn-dark:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 18px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:var(--sans)}
+.btn-full{width:100%;padding:13px;font-size:14px}
+.btn-dark{background:var(--brand);color:#fff}
+.btn-dark:hover:not(:disabled){background:var(--brand-strong);box-shadow:0 4px 16px rgba(0,169,157,.28)}
+.btn-dark:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed;box-shadow:none}
 .btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2);font-size:12px;padding:7px 14px}
-.btn-ghost:hover{border-color:var(--text);color:var(--text)}
-.btn-green{background:var(--green);color:#fff}
-.btn-green:hover:not(:disabled){opacity:.9}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
+.btn-green{background:var(--teal);color:#fff}
+.btn-green:hover:not(:disabled){background:var(--teal-strong)}
 .btn-green:disabled{background:var(--border2);color:var(--text3);cursor:not-allowed}
 
 /* Alerts */
@@ -66,7 +67,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .ctrl-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
 .ctrl-label{font-size:13px;font-weight:600;flex-shrink:0;color:var(--text2)}
 select{flex:1;min-width:220px;border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-size:13px;font-family:var(--sans);background:var(--surface);color:var(--text);outline:none}
-select:focus{border-color:var(--blue)}
+select:focus{border-color:var(--brand)}
 .ctrl-meta{font-size:12px;color:var(--text3);margin-left:auto}
 
 /* Stats */
@@ -143,8 +144,8 @@ iframe{width:100%;height:780px;border:none;display:block}
 <body>
 <header class="hdr">
   <div class="hdr-mark">H</div>
-  <div class="hdr-name">Hyly Template Injector</div>
-  <div class="hdr-pill">Preview &amp; Compare · v5.31</div>
+  <div class="hdr-name">Template Content Injector</div>
+  <div class="hdr-pill">Preview &amp; Compare · v5.32</div>
 </header>
 
 <div class="wrap">
@@ -240,7 +241,7 @@ iframe{width:100%;height:780px;border:none;display:block}
     </div>
     <div id="uploadStatus"></div>
     <button class="btn btn-dark btn-full" id="previewBtn" disabled onclick="buildPreview()">
-      Build preview &#8594;
+      Build &#8594;
     </button>
   </div>
 
